@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Zomato Hyperpure — Supply Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --zred:#E23744;--zred-light:#fff0f1;--zred-mid:#ffd6d9;
+  --green:#16a34a;--green-light:#f0fdf4;
+  --amber:#d97706;--amber-light:#fffbeb;
+  --bg:#f5f5f5;--card:#ffffff;--border:#e5e7eb;
+  --text:#111827;--text2:#6b7280;--text3:#9ca3af;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:50px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:8px}
+.brand-pill{background:var(--zred);color:#fff;font-weight:600;font-size:11px;padding:3px 9px;border-radius:5px}
+.brand-label{font-size:10px;color:var(--text2);font-weight:500;letter-spacing:0.7px;text-transform:uppercase}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.live-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.alert-chip{background:var(--zred-light);color:var(--zred);font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;border:1px solid var(--zred-mid)}
+.kpi-scroll{display:flex;gap:8px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.kpi-scroll::-webkit-scrollbar{display:none}
+.kpi{background:var(--bg);border-radius:8px;padding:8px 12px;min-width:90px;flex-shrink:0;position:relative;overflow:hidden}
+.kpi-label{font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);margin-bottom:3px;font-weight:500}
+.kpi-num{font-size:20px;font-weight:500;color:var(--text);line-height:1}
+.kpi-sub{font-size:9px;color:var(--text3);margin-top:2px}
+.kpi-accent{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:8px 0 0 8px}
+.rest-scroll{display:flex;gap:6px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.rest-scroll::-webkit-scrollbar{display:none}
+.rchip{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:20px;cursor:pointer;border:1px solid var(--border);white-space:nowrap;background:var(--bg);transition:all 0.15s;flex-shrink:0}
+.rchip.sel{background:var(--zred-light);border-color:var(--zred-mid)}
+.rdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rchip-name{font-size:11px;font-weight:500;color:var(--text)}
+.rchip-badge{font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;background:var(--zred-light);color:var(--zred)}
+.panel{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.panel-head{background:var(--card);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid var(--border)}
+.ph-name{font-size:13px;font-weight:600;color:var(--text)}
+.ph-meta{font-size:10px;color:var(--text2);margin-top:1px}
+.btn-primary{background:var(--zred);color:#fff;border:none;padding:6px 12px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font)}
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--card);padding:0 16px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 12px;font-size:11px;font-weight:500;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;font-family:var(--font)}
+.tab.on{color:var(--zred);border-bottom-color:var(--zred)}
+.tab-content{flex:1;overflow-y:auto;padding:12px 16px;background:var(--bg);-webkit-overflow-scrolling:touch}
+.cg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+@media(min-width:600px){.cg{grid-template-columns:repeat(3,1fr)}}
+.cc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;transition:border-color 0.3s}
+.cc.cc-red{border-color:#fca5a5;box-shadow:0 0 0 1px #fee2e2}
+.cc.cc-amber{border-color:#fcd34d}
+.cc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.cc-name{font-size:11px;font-weight:500;color:var(--text);line-height:1.3;flex:1;padding-right:4px}
+.cc-pct{font-size:12px;font-weight:600;flex-shrink:0}
+.pct-g{color:var(--green)}.pct-a{color:var(--amber)}.pct-r{color:var(--zred)}
+.track{height:4px;background:var(--bg);border-radius:3px;margin-bottom:7px;overflow:hidden}
+.fill{height:100%;border-radius:3px;transition:width 0.6s ease}
+.fill-g{background:#22c55e}.fill-a{background:#f59e0b}.fill-r{background:var(--zred)}
+.cc-row{display:flex;justify-content:space-between;font-size:9px;color:var(--text2);margin-bottom:5px;font-family:var(--mono)}
+.cc-tag{display:inline-block;font-size:9px;font-weight:500;padding:2px 6px;border-radius:6px}
+.tag-g{background:var(--green-light);color:var(--green)}.tag-a{background:var(--amber-light);color:var(--amber)}.tag-r{background:var(--zred-light);color:var(--zred)}
+.trend-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px}
+.trend-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px}
+.legend-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.leg{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--text2)}
+.leg-sq{width:8px;height:3px;border-radius:2px;display:inline-block}
+.chart-wrap{position:relative;width:100%;height:140px}
+.qcard{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:8px}
+.qcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.qcard-rest{font-size:11px;font-weight:600;color:var(--text)}
+.qcard-area{font-size:10px;color:var(--text2)}
+.qcard-item{font-size:12px;font-weight:500;color:var(--text);margin-bottom:6px}
+.qcard-row{display:flex;align-items:center;justify-content:space-between}
+.qcard-meta{font-size:10px;color:var(--text2);font-family:var(--mono)}
+.urgency{display:inline-block;font-size:9px;font-weight:600;padding:2px 7px;border-radius:8px}
+.urg-r{background:var(--zred-light);color:var(--zred)}.urg-a{background:var(--amber-light);color:var(--amber)}
+.order-btn{font-size:11px;font-weight:500;padding:5px 12px;border-radius:6px;border:none;background:var(--zred);color:#fff;cursor:pointer;font-family:var(--font)}
+.pa-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.pa-card-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:10px}
+.forecast-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.fc-name{font-size:10px;color:var(--text2);width:90px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fc-bar-wrap{flex:1;height:4px;background:var(--bg);border-radius:3px;overflow:hidden}
+.fc-bar{height:100%;border-radius:3px}
+.fc-val{font-size:9px;color:var(--text2);width:36px;text-align:right;flex-shrink:0;font-family:var(--mono)}
+.insight-item{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.ins-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px}
+.ins-text{font-size:11px;color:var(--text2);line-height:1.5}
+.ins-text strong{color:var(--text);font-weight:500}
+.empty-tab{display:flex;align-items:center;justify-content:center;height:150px;color:var(--text2);font-size:12px}
+.toast{position:fixed;bottom:calc(16px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(10px);background:#111;color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;opacity:0;transition:all 0.3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-pill">hyperpure</div>
+      <div class="brand-label">Supply Intelligence</div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge"><span class="live-dot"></span>Live</div>
+      <div class="alert-chip" id="top-alerts">—</div>
+    </div>
+  </div>
+  <div class="kpi-scroll" id="kpi-bar"></div>
+  <div class="rest-scroll" id="rest-chips"></div>
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="ph-name" id="ph-name">—</div>
+        <div class="ph-meta" id="ph-meta">—</div>
+      </div>
+      <button class="btn-primary" onclick="showToast('Reorder raised!')">+ Reorder</button>
+    </div>
+    <div class="tabs">
+      <div class="tab on" onclick="switchTab(0,this)">Status</div>
+      <div class="tab" onclick="switchTab(1,this)">Trends</div>
+      <div class="tab" onclick="switchTab(2,this)">Queue</div>
+      <div class="tab" onclick="switchTab(3,this)">Insights</div>
+    </div>
+    <div class="tab-content" id="tab-content"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const R=[
+  {id:0,name:"Behrouz Biryani",area:"Koramangala",type:"QSR",containers:[
+    {name:"Basmati Rice",qty:72,cap:100,daily:14,unit:"kg"},{name:"Chicken",qty:18,cap:60,daily:12,unit:"kg"},
+    {name:"Cooking Oil",qty:45,cap:80,daily:8,unit:"L"},{name:"Biryani Masala",qty:62,cap:100,daily:6,unit:"kg"},
+    {name:"Onions",qty:12,cap:50,daily:10,unit:"kg"},{name:"Ghee",qty:38,cap:60,daily:5,unit:"kg"}]},
+  {id:1,name:"Bowl Company",area:"HSR Layout",type:"Healthy QSR",containers:[
+    {name:"Quinoa",qty:8,cap:40,daily:9,unit:"kg"},{name:"Mixed Veggies",qty:55,cap:80,daily:12,unit:"kg"},
+    {name:"Olive Oil",qty:70,cap:90,daily:4,unit:"L"},{name:"Lentils",qty:28,cap:60,daily:7,unit:"kg"},
+    {name:"Brown Rice",qty:14,cap:50,daily:10,unit:"kg"},{name:"Tahini",qty:82,cap:100,daily:3,unit:"kg"}]},
+  {id:2,name:"Barbeque Nation",area:"Indiranagar",type:"Casual Dining",containers:[
+    {name:"Mutton",qty:65,cap:100,daily:18,unit:"kg"},{name:"Paneer",qty:40,cap:80,daily:10,unit:"kg"},
+    {name:"Charcoal",qty:22,cap:80,daily:15,unit:"kg"},{name:"Butter",qty:55,cap:80,daily:6,unit:"kg"},
+    {name:"Cream",qty:10,cap:40,daily:8,unit:"L"},{name:"Tomatoes",qty:78,cap:100,daily:9,unit:"kg"}]},
+  {id:3,name:"Theobroma",area:"MG Road",type:"Bakery",containers:[
+    {name:"Flour",qty:85,cap:120,daily:16,unit:"kg"},{name:"Dark Choco",qty:18,cap:50,daily:8,unit:"kg"},
+    {name:"Eggs",qty:60,cap:200,daily:40,unit:"nos"},{name:"Butter",qty:32,cap:80,daily:9,unit:"kg"},
+    {name:"Sugar",qty:90,cap:120,daily:12,unit:"kg"},{name:"Vanilla",qty:12,cap:30,daily:3,unit:"L"}]},
+  {id:4,name:"Meghana Foods",area:"Residency Rd",type:"South Indian",containers:[
+    {name:"Idli Rice",qty:95,cap:120,daily:20,unit:"kg"},{name:"Urad Dal",qty:42,cap:80,daily:10,unit:"kg"},
+    {name:"Coconut Oil",qty:15,cap:60,daily:7,unit:"L"},{name:"Tamarind",qty:60,cap:80,daily:4,unit:"kg"},
+    {name:"Mustard",qty:30,cap:50,daily:3,unit:"kg"},{name:"Curry Leaves",qty:8,cap:20,daily:2,unit:"kg"}]},
+  {id:5,name:"Social",area:"Koramangala",type:"Bar & Dining",containers:[
+    {name:"Pasta",qty:48,cap:80,daily:10,unit:"kg"},{name:"Fresh Cream",qty:14,cap:40,daily:9,unit:"L"},
+    {name:"Cheese",qty:55,cap:80,daily:8,unit:"kg"},{name:"Mushrooms",qty:22,cap:50,daily:7,unit:"kg"},
+    {name:"Bell Peppers",qty:68,cap:80,daily:5,unit:"kg"},{name:"Syrups",qty:35,cap:60,daily:4,unit:"L"}]}
+];
+let sel=0,activeTab=0,tChart=null,rChart=null;
+const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const colors=["#E23744","#f59e0b","#3b82f6","#8b5cf6","#10b981","#f97316"];
+function pct(c){return Math.round((c.qty/c.cap)*100)}
+function daysLeft(c){return c.daily>0?Math.floor(c.qty/c.daily):99}
+function st(c){const p=pct(c);return p<=20?"r":p<=45?"a":"g"}
+function dotCol(r){const red=r.containers.filter(c=>st(c)==="r").length;const amb=r.containers.filter(c=>st(c)==="a").length;return red>0?"#E23744":amb>0?"#f59e0b":"#22c55e"}
+function alertsOf(r){return r.containers.filter(c=>st(c)==="r").length}
+function warnsOf(r){return r.containers.filter(c=>st(c)!=="g").length}
+function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500)}
+function renderKPI(){
+  const tc=R.reduce((s,r)=>s+alertsOf(r),0);const tw=R.reduce((s,r)=>s+r.containers.filter(c=>st(c)==="a").length,0);
+  const tot=R.reduce((s,r)=>s+r.containers.length,0);const h=R.reduce((s,r)=>s+r.containers.filter(c=>st(c)==="g").length,0);
+  document.getElementById("top-alerts").textContent=tc+" critical";
+  document.getElementById("kpi-bar").innerHTML=`
+    <div class="kpi"><div class="kpi-accent" style="background:#3b82f6"></div><div class="kpi-label">Restaurants</div><div class="kpi-num">${R.length}</div><div class="kpi-sub">active</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:#22c55e"></div><div class="kpi-label">Containers</div><div class="kpi-num">${tot}</div><div class="kpi-sub">${h} healthy</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--zred)"></div><div class="kpi-label">Critical</div><div class="kpi-num" style="color:var(--zred)">${tc}</div><div class="kpi-sub">reorder now</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:#f59e0b"></div><div class="kpi-label">Warnings</div><div class="kpi-num" style="color:#d97706">${tw}</div><div class="kpi-sub">2 days</div></div>`
+}
+function renderChips(){
+  document.getElementById("rest-chips").innerHTML=R.map((r,i)=>{
+    const a=alertsOf(r),w=warnsOf(r);
+    const badge=a>0?`<span class="rchip-badge">${a}</span>`:w>0?`<span class="rchip-badge" style="background:var(--amber-light);color:var(--amber)">${w}</span>`:"";
+    return`<div class="rchip${i===sel?" sel":""}" onclick="pick(${i})"><div class="rdot" style="background:${dotCol(r)}"></div><span class="rchip-name">${r.name}</span>${badge}</div>`
+  }).join("")
+}
+function renderHead(){const r=R[sel];document.getElementById("ph-name").textContent=r.name;document.getElementById("ph-meta").textContent=r.type+" · "+r.area+" · "+r.containers.length+" containers"}
+function renderTab(){if(activeTab===0)renderContainers();else if(activeTab===1)renderTrend();else if(activeTab===2)renderQueue();else renderPredictive()}
+function renderContainers(){
+  const r=R[sel];
+  document.getElementById("tab-content").innerHTML=`<div class="cg">${r.containers.map(c=>{
+    const p=pct(c),d=daysLeft(c),s=st(c);
+    const pcls=s==="r"?"pct-r":s==="a"?"pct-a":"pct-g";
+    const fcls=s==="r"?"fill-r":s==="a"?"fill-a":"fill-g";
+    const ccls=s==="r"?" cc-red":s==="a"?" cc-amber":"";
+    const tagcls=s==="r"?"tag-r":s==="a"?"tag-a":"tag-g";
+    return`<div class="cc${ccls}"><div class="cc-top"><div class="cc-name">${c.name}</div><div class="cc-pct ${pcls}">${p}%</div></div><div class="track"><div class="fill ${fcls}" style="width:${p}%"></div></div><div class="cc-row"><span>${c.qty}/${c.cap}${c.unit}</span><span>${c.daily}/day</span></div><span class="cc-tag ${tagcls}">${s==="r"?"Reorder now":"~"+d+"d left"}</span></div>`
+  }).join("")}</div>`
+}
+function renderTrend(){
+  const r=R[sel];
+  const datasets=r.containers.map((c,i)=>({label:c.name,data:days.map(()=>Math.round(c.daily*0.6+Math.random()*c.daily*0.8)),borderColor:colors[i%colors.length],backgroundColor:colors[i%colors.length]+"18",fill:false,tension:0.4,pointRadius:2,borderWidth:2,pointBackgroundColor:colors[i%colors.length]}));
+  const legendHTML=datasets.map((d,i)=>`<span class="leg"><span class="leg-sq" style="background:${colors[i%colors.length]}"></span>${d.label}</span>`).join("");
+  document.getElementById("tab-content").innerHTML=`<div class="trend-wrap"><div class="trend-title">7-day consumption</div><div class="legend-row">${legendHTML}</div><div class="chart-wrap"><canvas id="tChart"></canvas></div></div>`;
+  if(tChart){tChart.destroy();tChart=null}
+  tChart=new Chart(document.getElementById("tChart"),{type:"line",data:{labels:days,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10,family:"DM Sans"}}},y:{grid:{color:"rgba(0,0,0,0.05)"},ticks:{font:{size:10,family:"DM Sans"}}}}}});
+}
+function renderQueue(){
+  const rows=[];R.forEach(r=>{r.containers.forEach(c=>{const s=st(c),d=daysLeft(c);if(s!=="g")rows.push({rest:r.name,area:r.area,item:c.name,pct:pct(c),days:d,unit:c.unit,status:s,suggest:Math.round(c.cap-c.qty)})})});
+  rows.sort((a,b)=>a.pct-b.pct);
+  if(!rows.length){document.getElementById("tab-content").innerHTML=`<div class="empty-tab">All containers healthy</div>`;return}
+  document.getElementById("tab-content").innerHTML=rows.map(r=>`<div class="qcard"><div class="qcard-top"><div><div class="qcard-rest">${r.rest}</div><div class="qcard-area">${r.area}</div></div><span class="urgency ${r.status==="r"?"urg-r":"urg-a"}">${r.status==="r"?"Critical":"Warning"}</span></div><div class="qcard-item">${r.item}</div><div class="qcard-row"><div class="qcard-meta">${r.pct}% · ${r.days===0?"Today":r.days+"d left"} · Need ${r.suggest}${r.unit}</div><button class="order-btn" onclick="showToast('Ordered ${r.suggest}${r.unit} of ${r.item}')">Order</button></div></div>`).join("")
+}
+function renderPredictive(){
+  const r=R[sel];
+  const forecastRows=r.containers.map((c,i)=>{const pp=Math.round((Math.max(0,c.qty-(c.daily*3))/c.cap)*100);return`<div class="forecast-row"><div class="fc-name">${c.name}</div><div class="fc-bar-wrap"><div class="fc-bar" style="width:${pp}%;background:${colors[i%colors.length]}"></div></div><div class="fc-val">${pp}% in 3d</div></div>`}).join("");
+  const insights=[{icon:"📈",txt:`<strong>${[...r.containers].sort((a,b)=>b.daily-a.daily)[0].name}</strong> depleting fastest`},{icon:"⚠️",txt:`<strong>${r.containers.filter(c=>st(c)==="r").length} items</strong> need immediate reorder`},{icon:"💡",txt:`Peak days <strong>Tue & Fri</strong> — deliver Mon & Thu`},{icon:"🔄",txt:`Bundle reorders to cut delivery cost ~18%`}].map(i=>`<div class="insight-item"><div class="ins-icon">${i.icon}</div><div class="ins-text">${i.txt}</div></div>`).join("");
+  const bLabels=r.containers.map(c=>c.name.length>8?c.name.slice(0,8)+"…":c.name);
+  const bData=r.containers.map(c=>Math.round((c.qty/c.cap)*100));
+  const bColors=r.containers.map(c=>{const s=st(c);return s==="r"?"#E23744":s==="a"?"#f59e0b":"#22c55e"});
+  document.getElementById("tab-content").innerHTML=`<div class="pa-card"><div class="pa-card-title">3-day stock forecast</div>${forecastRows}</div><div class="pa-card"><div class="pa-card-title">AI insights</div>${insights}</div><div class="pa-card"><div class="pa-card-title">Stock levels</div><div style="position:relative;width:100%;height:120px"><canvas id="rChart"></canvas></div></div>`;
+  if(rChart){rChart.destroy();rChart=null}
+  rChart=new Chart(document.getElementById("rChart"),{type:"bar",data:{labels:bLabels,datasets:[{label:"Stock %",data:bData,backgroundColor:bColors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:9,family:"DM Sans"}}},y:{max:100,grid:{color:"rgba(0,0,0,0.05)"},ticks:{font:{size:9,family:"DM Sans"},callback:v=>v+"%"}}}}});
+}
+function switchTab(i,el){activeTab=i;document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));el.classList.add("on");if(tChart){tChart.destroy();tChart=null}if(rChart){rChart.destroy();rChart=null}renderTab()}
+function pick(i){sel=i;renderChips();renderHead();renderTab()}
+function liveUpdate(){R.forEach(r=>{r.containers.forEach(c=>{if(Math.random()<0.35){const drop=Math.round(Math.random()*c.daily*0.4);c.qty=Math.max(0,c.qty-drop)}})});renderKPI();renderChips();if(activeTab===0)renderContainers();else if(activeTab===2)renderQueue()}
+renderKPI();renderChips();renderHead();renderTab();
+setInterval(liveUpdate,4000);
+</script>
+</body>
+</html>
