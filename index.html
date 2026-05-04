@@ -138,4 +138,97 @@ const R=[
     {name:"Basmati Rice",qty:72,cap:100,daily:14,unit:"kg"},{name:"Chicken",qty:18,cap:60,daily:12,unit:"kg"},
     {name:"Cooking Oil",qty:45,cap:80,daily:8,unit:"L"},{name:"Biryani Masala",qty:62,cap:100,daily:6,unit:"kg"},
     {name:"Onions",qty:12,cap:50,daily:10,unit:"kg"},{name:"Ghee",qty:38,cap:60,daily:5,unit:"kg"}]},
-  {id:1,name:"Bowl Company",
+  {id:1,name:"Bowl Company",area:"HSR Layout",type:"Healthy QSR",containers:[
+    {name:"Quinoa",qty:8,cap:40,daily:9,unit:"kg"},{name:"Mixed Veggies",qty:55,cap:80,daily:12,unit:"kg"},
+    {name:"Olive Oil",qty:70,cap:90,daily:4,unit:"L"},{name:"Lentils",qty:28,cap:60,daily:7,unit:"kg"},
+    {name:"Brown Rice",qty:14,cap:50,daily:10,unit:"kg"},{name:"Tahini",qty:82,cap:100,daily:3,unit:"kg"}]},
+  {id:2,name:"Barbeque Nation",area:"Indiranagar",type:"Casual Dining",containers:[
+    {name:"Mutton",qty:65,cap:100,daily:18,unit:"kg"},{name:"Paneer",qty:40,cap:80,daily:10,unit:"kg"},
+    {name:"Charcoal",qty:22,cap:80,daily:15,unit:"kg"},{name:"Butter",qty:55,cap:80,daily:6,unit:"kg"},
+    {name:"Cream",qty:10,cap:40,daily:8,unit:"L"},{name:"Tomatoes",qty:78,cap:100,daily:9,unit:"kg"}]},
+  {id:3,name:"Theobroma",area:"MG Road",type:"Bakery",containers:[
+    {name:"Flour",qty:85,cap:120,daily:16,unit:"kg"},{name:"Dark Choco",qty:18,cap:50,daily:8,unit:"kg"},
+    {name:"Eggs",qty:60,cap:200,daily:40,unit:"nos"},{name:"Butter",qty:32,cap:80,daily:9,unit:"kg"},
+    {name:"Sugar",qty:90,cap:120,daily:12,unit:"kg"},{name:"Vanilla",qty:12,cap:30,daily:3,unit:"L"}]},
+  {id:4,name:"Meghana Foods",area:"Residency Rd",type:"South Indian",containers:[
+    {name:"Idli Rice",qty:95,cap:120,daily:20,unit:"kg"},{name:"Urad Dal",qty:42,cap:80,daily:10,unit:"kg"},
+    {name:"Coconut Oil",qty:15,cap:60,daily:7,unit:"L"},{name:"Tamarind",qty:60,cap:80,daily:4,unit:"kg"},
+    {name:"Mustard",qty:30,cap:50,daily:3,unit:"kg"},{name:"Curry Leaves",qty:8,cap:20,daily:2,unit:"kg"}]},
+  {id:5,name:"Social",area:"Koramangala",type:"Bar & Dining",containers:[
+    {name:"Pasta",qty:48,cap:80,daily:10,unit:"kg"},{name:"Fresh Cream",qty:14,cap:40,daily:9,unit:"L"},
+    {name:"Cheese",qty:55,cap:80,daily:8,unit:"kg"},{name:"Mushrooms",qty:22,cap:50,daily:7,unit:"kg"},
+    {name:"Bell Peppers",qty:68,cap:80,daily:5,unit:"kg"},{name:"Syrups",qty:35,cap:60,daily:4,unit:"L"}]}
+];
+let sel=0,activeTab=0,tChart=null,rChart=null;
+const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const colors=["#E23744","#f59e0b","#3b82f6","#8b5cf6","#10b981","#f97316"];
+function pct(c){return Math.round((c.qty/c.cap)*100)}
+function daysLeft(c){return c.daily>0?Math.floor(c.qty/c.daily):99}
+function st(c){const p=pct(c);return p<=20?"r":p<=45?"a":"g"}
+function dotCol(r){const red=r.containers.filter(c=>st(c)==="r").length;const amb=r.containers.filter(c=>st(c)==="a").length;return red>0?"#E23744":amb>0?"#f59e0b":"#22c55e"}
+function alertsOf(r){return r.containers.filter(c=>st(c)==="r").length}
+function warnsOf(r){return r.containers.filter(c=>st(c)!=="g").length}
+function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500)}
+function renderKPI(){
+  const tc=R.reduce((s,r)=>s+alertsOf(r),0);const tw=R.reduce((s,r)=>s+r.containers.filter(c=>st(c)==="a").length,0);
+  const tot=R.reduce((s,r)=>s+r.containers.length,0);const h=R.reduce((s,r)=>s+r.containers.filter(c=>st(c)==="g").length,0);
+  document.getElementById("top-alerts").textContent=tc+" critical";
+  document.getElementById("kpi-bar").innerHTML=`
+    <div class="kpi"><div class="kpi-accent" style="background:#3b82f6"></div><div class="kpi-label">Restaurants</div><div class="kpi-num">${R.length}</div><div class="kpi-sub">active</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:#22c55e"></div><div class="kpi-label">Containers</div><div class="kpi-num">${tot}</div><div class="kpi-sub">${h} healthy</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--zred)"></div><div class="kpi-label">Critical</div><div class="kpi-num" style="color:var(--zred)">${tc}</div><div class="kpi-sub">reorder now</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:#f59e0b"></div><div class="kpi-label">Warnings</div><div class="kpi-num" style="color:#d97706">${tw}</div><div class="kpi-sub">2 days</div></div>`
+}
+function renderChips(){
+  document.getElementById("rest-chips").innerHTML=R.map((r,i)=>{
+    const a=alertsOf(r),w=warnsOf(r);
+    const badge=a>0?`<span class="rchip-badge">${a}</span>`:w>0?`<span class="rchip-badge" style="background:var(--amber-light);color:var(--amber)">${w}</span>`:"";
+    return`<div class="rchip${i===sel?" sel":""}" onclick="pick(${i})"><div class="rdot" style="background:${dotCol(r)}"></div><span class="rchip-name">${r.name}</span>${badge}</div>`
+  }).join("")
+}
+function renderHead(){const r=R[sel];document.getElementById("ph-name").textContent=r.name;document.getElementById("ph-meta").textContent=r.type+" · "+r.area+" · "+r.containers.length+" containers"}
+function renderTab(){if(activeTab===0)renderContainers();else if(activeTab===1)renderTrend();else if(activeTab===2)renderQueue();else renderPredictive()}
+function renderContainers(){
+  const r=R[sel];
+  document.getElementById("tab-content").innerHTML=`<div class="cg">${r.containers.map(c=>{
+    const p=pct(c),d=daysLeft(c),s=st(c);
+    const pcls=s==="r"?"pct-r":s==="a"?"pct-a":"pct-g";
+    const fcls=s==="r"?"fill-r":s==="a"?"fill-a":"fill-g";
+    const ccls=s==="r"?" cc-red":s==="a"?" cc-amber":"";
+    const tagcls=s==="r"?"tag-r":s==="a"?"tag-a":"tag-g";
+    return`<div class="cc${ccls}"><div class="cc-top"><div class="cc-name">${c.name}</div><div class="cc-pct ${pcls}">${p}%</div></div><div class="track"><div class="fill ${fcls}" style="width:${p}%"></div></div><div class="cc-row"><span>${c.qty}/${c.cap}${c.unit}</span><span>${c.daily}/day</span></div><span class="cc-tag ${tagcls}">${s==="r"?"Reorder now":"~"+d+"d left"}</span></div>`
+  }).join("")}</div>`
+}
+function renderTrend(){
+  const r=R[sel];
+  const datasets=r.containers.map((c,i)=>({label:c.name,data:days.map(()=>Math.round(c.daily*0.6+Math.random()*c.daily*0.8)),borderColor:colors[i%colors.length],backgroundColor:colors[i%colors.length]+"18",fill:false,tension:0.4,pointRadius:2,borderWidth:2,pointBackgroundColor:colors[i%colors.length]}));
+  const legendHTML=datasets.map((d,i)=>`<span class="leg"><span class="leg-sq" style="background:${colors[i%colors.length]}"></span>${d.label}</span>`).join("");
+  document.getElementById("tab-content").innerHTML=`<div class="trend-wrap"><div class="trend-title">7-day consumption</div><div class="legend-row">${legendHTML}</div><div class="chart-wrap"><canvas id="tChart"></canvas></div></div>`;
+  if(tChart){tChart.destroy();tChart=null}
+  tChart=new Chart(document.getElementById("tChart"),{type:"line",data:{labels:days,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10,family:"DM Sans"}}},y:{grid:{color:"rgba(0,0,0,0.05)"},ticks:{font:{size:10,family:"DM Sans"}}}}}});
+}
+function renderQueue(){
+  const rows=[];R.forEach(r=>{r.containers.forEach(c=>{const s=st(c),d=daysLeft(c);if(s!=="g")rows.push({rest:r.name,area:r.area,item:c.name,pct:pct(c),days:d,unit:c.unit,status:s,suggest:Math.round(c.cap-c.qty)})})});
+  rows.sort((a,b)=>a.pct-b.pct);
+  if(!rows.length){document.getElementById("tab-content").innerHTML=`<div class="empty-tab">All containers healthy</div>`;return}
+  document.getElementById("tab-content").innerHTML=rows.map(r=>`<div class="qcard"><div class="qcard-top"><div><div class="qcard-rest">${r.rest}</div><div class="qcard-area">${r.area}</div></div><span class="urgency ${r.status==="r"?"urg-r":"urg-a"}">${r.status==="r"?"Critical":"Warning"}</span></div><div class="qcard-item">${r.item}</div><div class="qcard-row"><div class="qcard-meta">${r.pct}% · ${r.days===0?"Today":r.days+"d left"} · Need ${r.suggest}${r.unit}</div><button class="order-btn" onclick="showToast('Ordered ${r.suggest}${r.unit} of ${r.item}')">Order</button></div></div>`).join("")
+}
+function renderPredictive(){
+  const r=R[sel];
+  const forecastRows=r.containers.map((c,i)=>{const pp=Math.round((Math.max(0,c.qty-(c.daily*3))/c.cap)*100);return`<div class="forecast-row"><div class="fc-name">${c.name}</div><div class="fc-bar-wrap"><div class="fc-bar" style="width:${pp}%;background:${colors[i%colors.length]}"></div></div><div class="fc-val">${pp}% in 3d</div></div>`}).join("");
+  const insights=[{icon:"📈",txt:`<strong>${[...r.containers].sort((a,b)=>b.daily-a.daily)[0].name}</strong> depleting fastest`},{icon:"⚠️",txt:`<strong>${r.containers.filter(c=>st(c)==="r").length} items</strong> need immediate reorder`},{icon:"💡",txt:`Peak days <strong>Tue & Fri</strong> — deliver Mon & Thu`},{icon:"🔄",txt:`Bundle reorders to cut delivery cost ~18%`}].map(i=>`<div class="insight-item"><div class="ins-icon">${i.icon}</div><div class="ins-text">${i.txt}</div></div>`).join("");
+  const bLabels=r.containers.map(c=>c.name.length>8?c.name.slice(0,8)+"…":c.name);
+  const bData=r.containers.map(c=>Math.round((c.qty/c.cap)*100));
+  const bColors=r.containers.map(c=>{const s=st(c);return s==="r"?"#E23744":s==="a"?"#f59e0b":"#22c55e"});
+  document.getElementById("tab-content").innerHTML=`<div class="pa-card"><div class="pa-card-title">3-day stock forecast</div>${forecastRows}</div><div class="pa-card"><div class="pa-card-title">AI insights</div>${insights}</div><div class="pa-card"><div class="pa-card-title">Stock levels</div><div style="position:relative;width:100%;height:120px"><canvas id="rChart"></canvas></div></div>`;
+  if(rChart){rChart.destroy();rChart=null}
+  rChart=new Chart(document.getElementById("rChart"),{type:"bar",data:{labels:bLabels,datasets:[{label:"Stock %",data:bData,backgroundColor:bColors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:9,family:"DM Sans"}}},y:{max:100,grid:{color:"rgba(0,0,0,0.05)"},ticks:{font:{size:9,family:"DM Sans"},callback:v=>v+"%"}}}}});
+}
+function switchTab(i,el){activeTab=i;document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));el.classList.add("on");if(tChart){tChart.destroy();tChart=null}if(rChart){rChart.destroy();rChart=null}renderTab()}
+function pick(i){sel=i;renderChips();renderHead();renderTab()}
+function liveUpdate(){R.forEach(r=>{r.containers.forEach(c=>{if(Math.random()<0.35){const drop=Math.round(Math.random()*c.daily*0.4);c.qty=Math.max(0,c.qty-drop)}})});renderKPI();renderChips();if(activeTab===0)renderContainers();else if(activeTab===2)renderQueue()}
+renderKPI();renderChips();renderHead();renderTab();
+setInterval(liveUpdate,4000);
+</script>
+</body>
+</html>
