@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zomato Hyperpure — Supply Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --zred:#E23744;--zred-light:#fff0f1;--zred-mid:#ffd6d9;
+  --green:#16a34a;--green-light:#f0fdf4;
+  --amber:#d97706;--amber-light:#fffbeb;
+  --blue:#2563eb;
+  --bg:#f5f5f5;--card:#ffffff;--border:#e5e7eb;
+  --text:#111827;--text2:#6b7280;--text3:#9ca3af;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:13px}
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* TOPBAR */
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-pill{background:var(--zred);color:#fff;font-weight:600;font-size:12px;padding:4px 11px;border-radius:6px;letter-spacing:0.3px}
+.brand-label{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:0.8px;text-transform:uppercase}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);background:var(--bg);padding:4px 10px;border-radius:20px;border:1px solid var(--border)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.alert-chip{background:var(--zred-light);color:var(--zred);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--zred-mid)}
+
+/* KPI */
+.kpi-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0}
+.kpi{background:var(--bg);border-radius:8px;padding:10px 14px;position:relative;overflow:hidden}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);margin-bottom:4px;font-weight:500}
+.kpi-num{font-size:22px;font-weight:500;color:var(--text);line-height:1}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:3px}
+.kpi-accent{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:8px 0 0 8px}
+
+/* BODY */
+.body{display:grid;grid-template-columns:240px 1fr;flex:1;min-height:0;overflow:hidden}
+.sidebar{background:var(--card);border-right:1px solid var(--border);padding:12px 10px;overflow-y:auto}
+.sid-label{font-size:10px;text-transform:uppercase;letter-spacing:0.7px;color:var(--text3);padding:4px 8px 6px;font-weight:500}
+.ritem{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:8px;cursor:pointer;transition:background 0.15s;margin-bottom:1px;border:1px solid transparent}
+.ritem:hover{background:var(--bg)}
+.ritem.sel{background:var(--zred-light);border-color:var(--zred-mid)}
+.rdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:background 0.3s}
+.rinfo{flex:1;min-width:0}
+.rname{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rarea{font-size:10px;color:var(--text2);margin-top:1px}
+.rbadge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;flex-shrink:0}
+.rbadge-red{background:var(--zred-light);color:var(--zred)}
+.rbadge-amber{background:var(--amber-light);color:var(--amber)}
+
+/* PANEL */
+.panel{display:flex;flex-direction:column;overflow:hidden}
+.panel-head{background:var(--card);border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ph-name{font-size:15px;font-weight:600;color:var(--text)}
+.ph-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.ph-actions{display:flex;gap:8px}
+.btn-ghost{background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 12px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font)}
+.btn-ghost:hover{background:var(--border)}
+.btn-primary{background:var(--zred);color:#fff;border:none;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font)}
+.btn-primary:hover{opacity:0.88}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--card);padding:0 18px;flex-shrink:0}
+.tab{padding:9px 14px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:color 0.15s;white-space:nowrap;font-family:var(--font)}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--zred);border-bottom-color:var(--zred)}
+.tab-content{flex:1;overflow-y:auto;padding:16px 18px;background:var(--bg)}
+
+/* CONTAINERS */
+.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.cc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px;transition:border-color 0.3s,box-shadow 0.3s}
+.cc.cc-red{border-color:#fca5a5;box-shadow:0 0 0 1px #fee2e2}
+.cc.cc-amber{border-color:#fcd34d}
+.cc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.cc-name{font-size:12px;font-weight:500;color:var(--text);line-height:1.3}
+.cc-pct{font-size:13px;font-weight:600}
+.pct-g{color:var(--green)}.pct-a{color:var(--amber)}.pct-r{color:var(--zred)}
+.track{height:5px;background:var(--bg);border-radius:3px;margin-bottom:8px;overflow:hidden}
+.fill{height:100%;border-radius:3px;transition:width 0.6s ease}
+.fill-g{background:#22c55e}.fill-a{background:#f59e0b}.fill-r{background:var(--zred)}
+.cc-row{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:5px;font-family:var(--mono)}
+.cc-tag{display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:8px}
+.tag-g{background:var(--green-light);color:var(--green)}
+.tag-a{background:var(--amber-light);color:var(--amber)}
+.tag-r{background:var(--zred-light);color:var(--zred)}
+
+/* TREND */
+.trend-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.trend-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.trend-title{font-size:13px;font-weight:500;color:var(--text)}
+.legend-row{display:flex;gap:12px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
+.leg-sq{width:10px;height:3px;border-radius:2px;display:inline-block}
+.chart-wrap{position:relative;width:100%;height:160px}
+
+/* QUEUE TABLE */
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.rq-table{width:100%;border-collapse:collapse}
+.rq-table th{font-size:10px;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);font-weight:500;padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg)}
+.rq-table td{font-size:12px;padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.rq-table tr:last-child td{border-bottom:none}
+.rq-table tr:hover td{background:var(--bg)}
+.urgency{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px}
+.urg-r{background:var(--zred-light);color:var(--zred)}
+.urg-a{background:var(--amber-light);color:var(--amber)}
+.order-btn{font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text);font-family:var(--font);transition:all 0.15s}
+.order-btn:hover{background:var(--zred);color:#fff;border-color:var(--zred)}
+
+/* PREDICTIVE */
+.pa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.pa-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.pa-card-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:10px}
+.forecast-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.fc-name{font-size:11px;color:var(--text2);width:100px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fc-bar-wrap{flex:1;height:5px;background:var(--bg);border-radius:3px;overflow:hidden}
+.fc-bar{height:100%;border-radius:3px}
+.fc-val{font-size:10px;color:var(--text2);width:40px;text-align:right;flex-shrink:0;font-family:var(--mono)}
+.insight-item{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.ins-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px}
+.ins-text{font-size:11px;color:var(--text2);line-height:1.5}
+.ins-text strong{color:var(--text);font-weight:500}
+.empty-tab{display:flex;align-items:center;justify-content:center;height:200px;color:var(--text2);font-size:13px}
+.section-title{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#111;color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;opacity:0;transform:translateY(10px);transition:all 0.3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-pill">hyperpure</div>
+      <div class="brand-label">Supply Intelligence</div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge"><span class="live-dot"></span>Live · updates every 4s</div>
+      <div class="alert-chip" id="top-alerts">— critical</div>
+    </div>
+  </div>
+
+  <div class="kpi-bar" id="kpi-bar"></div>
+
+  <div class="body">
+    <div class="sidebar">
+      <div class="sid-label">Partner restaurants</div>
+      <div id="rest-list"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="ph-name" id="ph-name">—</div>
+          <div class="ph-meta" id="ph-meta">—</div>
+        </div>
+        <div class="ph-actions">
+          <button class="btn-ghost" onclick="showToast('Report exported!')">Export report</button>
+          <button class="btn-primary" onclick="showToast('Reorder raised for ' + restaurants[sel].name + '!')">+ Raise reorder</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <div class="tab on" onclick="switchTab(0,this)">Container status</div>
+        <div class="tab" onclick="switchTab(1,this)">Consumption trend</div>
+        <div class="tab" onclick="switchTab(2,this)">Reorder queue</div>
+        <div class="tab" onclick="switchTab(3,this)">Predictive analytics</div>
+      </div>
+      <div class="tab-content" id="tab-content"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const restaurants=[
+  {id:0,name:"Behrouz Biryani",area:"Koramangala",type:"QSR · Bengaluru",containers:[
+    {name:"Basmati Rice",qty:72,cap:100,daily:14,unit:"kg"},
+    {name:"Chicken (raw)",qty:18,cap:60,daily:12,unit:"kg"},
+    {name:"Cooking Oil",qty:45,cap:80,daily:8,unit:"L"},
+    {name:"Biryani Masala",qty:62,cap:100,daily:6,unit:"kg"},
+    {name:"Onions",qty:12,cap:50,daily:10,unit:"kg"},
+    {name:"Ghee",qty:38,cap:60,daily:5,unit:"kg"}
+  ]},
+  {id:1,name:"The Bowl Company",area:"HSR Layout",type:"Healthy QSR · Bengaluru",containers:[
+    {name:"Quinoa",qty:8,cap:40,daily:9,unit:"kg"},
+    {name:"Mixed Veggies",qty:55,cap:80,daily:12,unit:"kg"},
+    {name:"Olive Oil",qty:70,cap:90,daily:4,unit:"L"},
+    {name:"Lentils",qty:28,cap:60,daily:7,unit:"kg"},
+    {name:"Brown Rice",qty:14,cap:50,daily:10,unit:"kg"},
+    {name:"Tahini",qty:82,cap:100,daily:3,unit:"kg"}
+  ]},
+  {id:2,name:"Barbeque Nation",area:"Indiranagar",type:"Casual Dining · Bengaluru",containers:[
+    {name:"Mutton",qty:65,cap:100,daily:18,unit:"kg"},
+    {name:"Paneer",qty:40,cap:80,daily:10,unit:"kg"},
+    {name:"Charcoal",qty:22,cap:80,daily:15,unit:"kg"},
+    {name:"Butter",qty:55,cap:80,daily:6,unit:"kg"},
+    {name:"Fresh Cream",qty:10,cap:40,daily:8,unit:"L"},
+    {name:"Tomatoes",qty:78,cap:100,daily:9,unit:"kg"}
+  ]},
+  {id:3,name:"Theobroma",area:"MG Road",type:"Bakery & Cafe · Bengaluru",containers:[
+    {name:"Refined Flour",qty:85,cap:120,daily:16,unit:"kg"},
+    {name:"Dark Chocolate",qty:18,cap:50,daily:8,unit:"kg"},
+    {name:"Eggs",qty:60,cap:200,daily:40,unit:"nos"},
+    {name:"Butter",qty:32,cap:80,daily:9,unit:"kg"},
+    {name:"Sugar",qty:90,cap:120,daily:12,unit:"kg"},
+    {name:"Vanilla Extract",qty:12,cap:30,daily:3,unit:"L"}
+  ]},
+  {id:4,name:"Meghana Foods",area:"Residency Rd",type:"South Indian · Bengaluru",containers:[
+    {name:"Idli Rice",qty:95,cap:120,daily:20,unit:"kg"},
+    {name:"Urad Dal",qty:42,cap:80,daily:10,unit:"kg"},
+    {name:"Coconut Oil",qty:15,cap:60,daily:7,unit:"L"},
+    {name:"Tamarind",qty:60,cap:80,daily:4,unit:"kg"},
+    {name:"Mustard Seeds",qty:30,cap:50,daily:3,unit:"kg"},
+    {name:"Curry Leaves",qty:8,cap:20,daily:2,unit:"kg"}
+  ]},
+  {id:5,name:"Social",area:"Koramangala",type:"Bar & Dining · Bengaluru",containers:[
+    {name:"Pasta",qty:48,cap:80,daily:10,unit:"kg"},
+    {name:"Fresh Cream",qty:14,cap:40,daily:9,unit:"L"},
+    {name:"Cheese",qty:55,cap:80,daily:8,unit:"kg"},
+    {name:"Mushrooms",qty:22,cap:50,daily:7,unit:"kg"},
+    {name:"Bell Peppers",qty:68,cap:80,daily:5,unit:"kg"},
+    {name:"Cocktail Syrups",qty:35,cap:60,daily:4,unit:"L"}
+  ]}
+];
+
+let sel=0,activeTab=0,tChart=null,rChart=null;
+const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const colors=["#E23744","#f59e0b","#3b82f6","#8b5cf6","#10b981","#f97316"];
+
+function pct(c){return Math.round((c.qty/c.cap)*100)}
+function daysLeft(c){return c.daily>0?Math.floor(c.qty/c.daily):99}
+function st(c){const p=pct(c);return p<=20?"r":p<=45?"a":"g"}
+function dotCol(r){const reds=r.containers.filter(c=>st(c)==="r").length;const ambs=r.containers.filter(c=>st(c)==="a").length;return reds>0?"#E23744":ambs>0?"#f59e0b":"#22c55e"}
+function alertsOf(r){return r.containers.filter(c=>st(c)==="r").length}
+function warnsOf(r){return r.containers.filter(c=>st(c)!=="g").length}
+
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),2500);
+}
+
+function renderKPI(){
+  const totalCrit=restaurants.reduce((s,r)=>s+alertsOf(r),0);
+  const totalWarn=restaurants.reduce((s,r)=>s+r.containers.filter(c=>st(c)==="a").length,0);
+  const totalC=restaurants.reduce((s,r)=>s+r.containers.length,0);
+  const healthy=restaurants.reduce((s,r)=>s+r.containers.filter(c=>st(c)==="g").length,0);
+  document.getElementById("top-alerts").textContent=totalCrit+" critical";
+  document.getElementById("kpi-bar").innerHTML=`
+    <div class="kpi"><div class="kpi-accent" style="background:#3b82f6"></div><div class="kpi-label">Restaurants</div><div class="kpi-num">${restaurants.length}</div><div class="kpi-sub">active partners</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:#22c55e"></div><div class="kpi-label">Containers tracked</div><div class="kpi-num">${totalC}</div><div class="kpi-sub">${healthy} healthy</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--zred)"></div><div class="kpi-label">Critical alerts</div><div class="kpi-num" style="color:var(--zred)">${totalCrit}</div><div class="kpi-sub">reorder immediately</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:#f59e0b"></div><div class="kpi-label">Warnings</div><div class="kpi-num" style="color:#d97706">${totalWarn}</div><div class="kpi-sub">within 2 days</div></div>
+  `
+}
+
+function renderSidebar(){
+  document.getElementById("rest-list").innerHTML=restaurants.map((r,i)=>{
+    const a=alertsOf(r),w=warnsOf(r);
+    const badge=a>0?`<span class="rbadge rbadge-red">${a}</span>`:w>0?`<span class="rbadge rbadge-amber">${w}</span>`:"";
+    return`<div class="ritem${i===sel?" sel":""}" onclick="pick(${i})">
+      <div class="rdot" style="background:${dotCol(r)}"></div>
+      <div class="rinfo"><div class="rname">${r.name}</div><div class="rarea">${r.area}</div></div>
+      ${badge}
+    </div>`
+  }).join("")
+}
+
+function renderHead(){
+  const r=restaurants[sel];
+  document.getElementById("ph-name").textContent=r.name;
+  document.getElementById("ph-meta").textContent=r.type+" · "+r.containers.length+" containers";
+}
+
+function renderTab(){
+  if(activeTab===0)renderContainers();
+  else if(activeTab===1)renderTrend();
+  else if(activeTab===2)renderQueue();
+  else renderPredictive();
+}
+
+function renderContainers(){
+  const r=restaurants[sel];
+  const cards=r.containers.map(c=>{
+    const p=pct(c),d=daysLeft(c),s=st(c);
+    const pcls=s==="r"?"pct-r":s==="a"?"pct-a":"pct-g";
+    const fcls=s==="r"?"fill-r":s==="a"?"fill-a":"fill-g";
+    const ccls=s==="r"?" cc-red":s==="a"?" cc-amber":"";
+    const tagcls=s==="r"?"tag-r":s==="a"?"tag-a":"tag-g";
+    const tagtxt=s==="r"?"Reorder now":"~"+d+" days left";
+    return`<div class="cc${ccls}">
+      <div class="cc-top"><div class="cc-name">${c.name}</div><div class="cc-pct ${pcls}">${p}%</div></div>
+      <div class="track"><div class="fill ${fcls}" style="width:${p}%"></div></div>
+      <div class="cc-row"><span>${c.qty} / ${c.cap} ${c.unit}</span><span>${c.daily} ${c.unit}/day</span></div>
+      <span class="cc-tag ${tagcls}">${tagtxt}</span>
+    </div>`
+  }).join("");
+  document.getElementById("tab-content").innerHTML=`<div class="cg">${cards}</div>`;
+}
+
+function renderTrend(){
+  const r=restaurants[sel];
+  const datasets=r.containers.map((c,i)=>({
+    label:c.name,
+    data:days.map(()=>Math.round(c.daily*0.6+Math.random()*c.daily*0.8)),
+    borderColor:colors[i%colors.length],
+    backgroundColor:colors[i%colors.length]+"18",
+    fill:false,tension:0.4,pointRadius:3,borderWidth:2,
+    pointBackgroundColor:colors[i%colors.length]
+  }));
+  const legendHTML=datasets.map((d,i)=>`<span class="leg"><span class="leg-sq" style="background:${colors[i%colors.length]}"></span>${d.label}</span>`).join("");
+  document.getElementById("tab-content").innerHTML=`
+    <div class="trend-wrap">
+      <div class="trend-head">
+        <div class="trend-title">7-day consumption — ${r.name}</div>
+        <div class="legend-row">${legendHTML}</div>
+      </div>
+      <div class="chart-wrap"><canvas id="tChart"></canvas></div>
+    </div>`;
+  if(tChart){tChart.destroy();tChart=null}
+  tChart=new Chart(document.getElementById("tChart"),{
+    type:"line",data:{labels:days,datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:11,family:"DM Sans"}}},
+              y:{grid:{color:"rgba(0,0,0,0.05)"},ticks:{font:{size:11,family:"DM Sans"}}}}}
+  });
+}
+
+function renderQueue(){
+  const rows=[];
+  restaurants.forEach(r=>{
+    r.containers.forEach(c=>{
+      const s=st(c),d=daysLeft(c);
+      if(s!=="g")rows.push({rest:r.name,area:r.area,item:c.name,pct:pct(c),days:d,daily:c.daily,unit:c.unit,status:s,suggest:Math.round(c.cap-c.qty)});
+    });
+  });
+  rows.sort((a,b)=>a.pct-b.pct);
+  if(!rows.length){document.getElementById("tab-content").innerHTML=`<div class="empty-tab">All containers healthy — no reorders needed</div>`;return}
+  document.getElementById("tab-content").innerHTML=`<div class="tbl-wrap">
+    <table class="rq-table">
+      <thead><tr><th>Restaurant</th><th>Item</th><th>Stock</th><th>Days left</th><th>Suggested qty</th><th>Urgency</th><th>Action</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td><strong>${r.rest}</strong><br><span style="font-size:10px;color:var(--text2)">${r.area}</span></td>
+        <td>${r.item}</td>
+        <td style="font-family:var(--mono)">${r.pct}%</td>
+        <td>${r.days===0?"Today":r.days+" days"}</td>
+        <td style="font-family:var(--mono)">${r.suggest} ${r.unit}</td>
+        <td><span class="urgency ${r.status==="r"?"urg-r":"urg-a"}">${r.status==="r"?"Critical":"Warning"}</span></td>
+        <td><button class="order-btn" onclick="showToast('Order placed: ${r.suggest} ${r.unit} of ${r.item} for ${r.rest}')">Order</button></td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
+function renderPredictive(){
+  const r=restaurants[sel];
+  const bColors=r.containers.map(c=>{const s=st(c);return s==="r"?"#E23744":s==="a"?"#f59e0b":"#22c55e"});
+  const forecastRows=r.containers.map((c,i)=>{
+    const projected=Math.max(0,c.qty-(c.daily*3));
+    const pp=Math.round((projected/c.cap)*100);
+    return`<div class="forecast-row">
+      <div class="fc-name">${c.name}</div>
+      <div class="fc-bar-wrap"><div class="fc-bar" style="width:${pp}%;background:${colors[i%colors.length]}"></div></div>
+      <div class="fc-val">${pp}% in 3d</div>
+    </div>`
+  }).join("");
+  const insights=[
+    {icon:"📈",txt:`<strong>${r.containers.sort((a,b)=>b.daily-a.daily)[0].name}</strong> is depleting fastest — consider raising par level by 20%`},
+    {icon:"⚠️",txt:`<strong>${r.containers.filter(c=>st(c)==="r").length} items</strong> need immediate reorder to avoid service disruption`},
+    {icon:"💡",txt:`Based on patterns, <strong>Tuesday & Friday</strong> are peak days — schedule deliveries Monday & Thursday`},
+    {icon:"🔄",txt:`Bundling reorders with nearby partners could reduce delivery cost by ~18%`}
+  ].map(i=>`<div class="insight-item"><div class="ins-icon">${i.icon}</div><div class="ins-text">${i.txt}</div></div>`).join("");
+  const bLabels=r.containers.map(c=>c.name.length>10?c.name.slice(0,10)+"…":c.name);
+  const bData=r.containers.map(c=>Math.round((c.qty/c.cap)*100));
+  document.getElementById("tab-content").innerHTML=`
+    <div class="pa-grid">
+      <div class="pa-card"><div class="pa-card-title">3-day stock forecast</div>${forecastRows}</div>
+      <div class="pa-card"><div class="pa-card-title">AI insights</div>${insights}</div>
+    </div>
+    <div class="trend-wrap">
+      <div class="trend-head"><div class="trend-title">Current stock levels — all containers</div></div>
+      <div style="position:relative;width:100%;height:130px"><canvas id="rChart"></canvas></div>
+    </div>`;
+  if(rChart){rChart.destroy();rChart=null}
+  rChart=new Chart(document.getElementById("rChart"),{
+    type:"bar",
+    data:{labels:bLabels,datasets:[{label:"Stock %",data:bData,backgroundColor:bColors,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10,family:"DM Sans"}}},
+              y:{max:100,grid:{color:"rgba(0,0,0,0.05)"},ticks:{font:{size:10,family:"DM Sans"},callback:v=>v+"%"}}}}
+  });
+}
+
+function switchTab(i,el){
+  activeTab=i;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
+  el.classList.add("on");
+  if(tChart){tChart.destroy();tChart=null}
+  if(rChart){rChart.destroy();rChart=null}
+  renderTab();
+}
+
+function pick(i){sel=i;renderSidebar();renderHead();renderTab()}
+
+function liveUpdate(){
+  restaurants.forEach(r=>{
+    r.containers.forEach(c=>{
+      if(Math.random()<0.35){const drop=Math.round(Math.random()*c.daily*0.4);c.qty=Math.max(0,c.qty-drop)}
+    });
+  });
+  renderKPI();renderSidebar();
+  if(activeTab===0)renderContainers();
+  else if(activeTab===2)renderQueue();
+}
+
+renderKPI();renderSidebar();renderHead();renderTab();
+setInterval(liveUpdate,4000);
+</script>
+</body>
+</html>
